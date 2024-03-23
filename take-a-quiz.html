@@ -3,9 +3,57 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Document</title>
+  <title>Take A Quiz</title>
+  <link rel="stylesheet" href="navbar.css">
+  <link rel="stylesheet" href="general.css">
+  <link rel="stylesheet" href="cards.css">
+  <link rel="stylesheet" href="make-a-quiz.css">
 </head>
 <body>
-  
+  <ul class="topnav">
+    <li><a href="index.html">Home</a></li>
+    <li><a href="add-question.html">Add questions</a></li>
+    <li><a href="make-a-quiz.html">Create a quiz</a></li>
+    <li><a class="active" href="take-a-quiz.html">Take a quiz</a></li>
+    <li class="right"><a href="#about">About</a></li>
+  </ul>
+
+  <h3>Here are list of all available quizzes. Click on a quiz to start:</h3>
+
+  <div class="quiz-list" id="quiz-list">
+  </div>
+
+  <script>
+    const quizzesEndpoint = 'https://midterm-aceresol.onrender.com/quizzes';
+    async function loadQuizzes() {
+      try {
+        const response = await fetch(quizzesEndpoint);
+        const quizzes = await response.json();
+        populateQuizzes(quizzes);
+      } catch (error) {
+        console.error('Error:', error);
+      }
+    }
+    function populateQuizzes(quizzes) {
+      const quizList = document.getElementById('quiz-list');
+      quizList.innerHTML = '';
+      quizzes.forEach(quiz => {
+        const quizCard = document.createElement('div');
+        quizCard.className = 'card';
+        quizCard.innerHTML = `
+          <div class="container" onclick="startQuiz(${quiz.id})">
+            <h4><b>${quiz.title}</b></h4>
+            <p>${quiz.questionIds.length} questions</p>
+            <p>Click to start the quiz</p>
+          </div>
+        `;
+        quizList.appendChild(quizCard);
+      });
+    }
+    function startQuiz(quizId) {
+      window.location.href = `quiz.html?id=${quizId}`;
+    }
+    document.addEventListener('DOMContentLoaded', loadQuizzes);
+  </script>
 </body>
 </html>

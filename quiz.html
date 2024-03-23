@@ -1,11 +1,118 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Document</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quiz</title>
+    <link rel="stylesheet" href="quiz.css"> 
+    <link rel="stylesheet" href="navbar.css">
 </head>
 <body>
   
+
+
+    <div id="question-container">
+        <h3 id="question-title"></h3>
+        <img id="question-image" src="" alt="pic" style="width: 300px; height: auto;">
+        <p id="question-description"></p>
+        <form id="question-form">
+            <div id="choices-container"></div>
+        </form>
+    </div>
+
+    <button id="prev-btn" onclick="prevQuestion()">Previous</button>
+    <button id="next-btn" onclick="nextQuestion()">Next</button>
+    <button id="submit-btn" onclick="submitQuiz()">Submit</button>
+
+    <div id="score-container"></div>
+
+    <script>
+        const quizId = new URLSearchParams(window.location.search).get('id');
+        let currentQuestionIndex = 0;
+        let quiz = null; 
+        const questions = []; 
+
+        async function loadQuiz() {
+            try {
+                const response = await fetch(`https://midterm-aceresol.onrender.com/quizzes/${quizId}`);
+                quiz = await response.json();
+                questions.push(...quiz.questions);
+                populateQuestion();
+            } catch (error) {
+                console.error('Error:', error);
+            }
+        }
+
+        function populateQuestion() {
+            const question = questions[currentQuestionIndex];
+            if (question) {
+                document.getElementById('question-title').textContent = `Question ${currentQuestionIndex + 1}`;
+                document.getElementById('question-image').src = `https://midterm-aceresol.onrender.com/questions/${question.id}/image`;
+                document.getElementById('question-description').textContent = question.description;
+                const choicesContainer = document.getElementById('choices-container');
+                choicesContainer.innerHTML = '';
+                question.choices.forEach((choice, index) => {
+                    const choiceInput = document.createElement('input');
+                    choiceInput.type = 'radio';
+                    choiceInput.id = `choice-${index}`;
+                    choiceInput.name = 'answer';
+                    choiceInput.value = choice;
+
+                    const choiceLabel = document.createElement('label');
+                    choiceLabel.htmlFor = `choice-${index}`;
+                    choiceLabel.textContent = choice;
+
+                    choicesContainer.appendChild(choiceInput);
+                    choicesContainer.appendChild(choiceLabel);
+                    choicesContainer.appendChild(document.createElement('br'));
+
+                    choiceInput.addEventListener('change', () => {
+                        localStorage.setItem(`quiz${quizId}_question${question.id}`, choice);
+                    });
+                });
+                document.getElementById('question-container').style.display = 'block';
+            } else {
+                document.getElementById('question-container').style.display = 'none';
+            }    
+            document.getElementById('prev-btn').style.display = currentQuestionIndex === 0 ? 'none' : 'inline';
+            document.getElementById('next-btn').style.display = currentQuestionIndex === questions.length - 1 ? 'none' : 'inline';
+            document.getElementById('submit-btn').style.display = currentQuestionIndex === questions.length - 1 ? 'inline' : 'none';
+        }
+        function prevQuestion() {
+            if (currentQuestionIndex > 0) {
+                currentQuestionIndex--;
+                populateQuestion();
+            }
+        }
+        function nextQuestion() {
+            if (currentQuestionIndex < questions.length - 1) {
+                currentQuestionIndex++;
+                populateQuestion();
+            }
+        }
+        async function submitQuiz() {
+    let score = 0;
+    questions.forEach(question => {
+        const selectedAnswer = localStorage.getItem(`quiz${quizId}_question${question.id}`);
+        if (selectedAnswer === question.answer) {
+            score++;
+        }
+    });
+    const menuHtml = `
+        <ul class="topnav">
+            <li><a href="index.html">Home</a></li>
+            <li><a href="add-question.html">Add questions</a></li>
+            <li><a href="make-a-quiz.html">Create a quiz</a></li>
+            <li><a class="active" href="take-a-quiz.html">Take a quiz</a></li>
+            <li class="right"><a href="#about">About</a></li>
+        </ul>`;
+    const scoreHtml = `<div id="score-result">You finished "${quiz.title}".<br>Your score is: ${score} out of ${questions.length}.</div>`;
+    document.body.innerHTML = menuHtml + scoreHtml;
+    questions.forEach(question => {
+        localStorage.removeItem(`quiz${quizId}_question${question.id}`);
+    });
+}
+        document.addEventListener('DOMContentLoaded', loadQuiz);
+    </script>
 </body>
 </html>

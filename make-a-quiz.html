@@ -3,9 +3,130 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Document</title>
+  <title>Create a Quiz</title>
+  <link rel="stylesheet" href="navbar.css">
+  <link rel="stylesheet" href="general.css">
+  <link rel="stylesheet" href="cards.css">
+  <link rel="stylesheet" href="make-a-quiz.css">
 </head>
 <body>
-  
+  <ul class="topnav">
+    <li><a href="index.html">Home</a></li>
+    <li><a href="add-question.html">Add questions</a></li>
+    <li><a class="active" href="make-a-quiz.html">Create a quiz</a></li>
+    <li><a href="take-a-quiz.html">Take a quiz</a></li>
+    <li class="right"><a href="#about">About</a></li>
+  </ul>
+  <h3>Select question by clicking on the picture:</h3>
+  <div class="questions" id="questions-bank">
+    
+  </div>
+  <div class="quiz">
+    <h2>The new quiz(<span id="question-count">0</span> questions)</h2>
+    <input type="text" id="quiz-title" placeholder="Quiz title">
+    <button onclick="saveQuiz()">Save your changes</button>
+    <button onclick="saveAndNewQuiz()">Save this quiz and start a new one</button>
+    <div id="selected-questions" class="cards">
+    </div>
+  </div>
+
+  <script>
+    let selectedQuestions = [];
+    let quizId = null;
+    const questionsEndpoint = 'https://midterm-aceresol.onrender.com/questions'; 
+    const quizzesEndpoint = 'https://midterm-aceresol.onrender.com/quizzes';
+
+    async function loadQuestions() {
+      try {
+        const response = await fetch(questionsEndpoint);
+        const questions = await response.json();
+        populateQuestions(questions);
+      } catch (error) {
+        console.error('Error:', error);
+      }
+    }
+    function populateQuestions(questions) {
+      const questionsBank = document.getElementById('questions-bank');
+      questionsBank.innerHTML = '';
+      questions.forEach(question => {
+        const questionCard = document.createElement('div');
+        questionCard.className = 'card';
+        questionCard.innerHTML = `
+          <img src="${questionsEndpoint}/${question.id}/image" alt="Question image" onclick="toggleQuestion(${question.id}, this)">
+          <div class="container">
+            <h4><b>${question.id}</b></h4> 
+            <p>${question.description}</p>
+            <form>
+              ${question.choices.map((choice, index) => `
+                <input type="radio" id="q${question.id}Option${index}" name="q${question.id}Answer" value="${choice}">
+                <label for="q${question.id}Option${index}">${choice}</label><br>
+              `).join('')}
+            </form> 
+          </div>
+        `;
+        questionsBank.appendChild(questionCard);
+      });
+    }
+
+    function toggleQuestion(questionId, element) {
+      const index = selectedQuestions.indexOf(questionId);
+      if (index > -1) {
+        selectedQuestions.splice(index, 1);
+        element.parentElement.classList.remove('selected-question');
+      } else {
+        selectedQuestions.push(questionId);
+        element.parentElement.classList.add('selected-question');
+      }
+      updateSelectedQuestions();
+    }
+    function updateSelectedQuestions() {
+      const selectedQuestionsDiv = document.getElementById('selected-questions');
+      selectedQuestionsDiv.innerHTML = '';
+      selectedQuestions.forEach(questionId => {
+        const questionDiv = document.createElement('div');
+        questionDiv.className = 'card';
+        questionDiv.innerHTML = `
+          <img src="${questionsEndpoint}/${questionId}/image" alt="Selected Question image" onclick="toggleQuestion(${questionId}, this)">
+          <div class="container">
+            <h4><b>Question ID: ${questionId}</b></h4> 
+            
+          </div>
+        `;
+        selectedQuestionsDiv.appendChild(questionDiv);
+      });
+      document.getElementById('question-count').innerText = selectedQuestions.length;
+    }
+    async function saveQuiz() {
+      const quizTitle = document.getElementById('quiz-title').value;
+      const method = quizId ? 'PUT' : 'POST';
+      const endpoint = quizId ? `${quizzesEndpoint}/${quizId}` : quizzesEndpoint;
+      try {
+        const response = await fetch(endpoint, {
+          method: method,
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            id: quizId,
+            title: quizTitle,
+            questionIds: selectedQuestions
+          })
+        });
+        const data = await response.json();
+        quizId = data;
+        console.log('Quiz saved successfully');
+      } catch (error) {
+        console.error('Error:', error);
+      }
+    }
+    async function saveAndNewQuiz() {
+      await saveQuiz();
+      quizId = null;
+      selectedQuestions = [];
+      document.getElementById('quiz-title').value = '';
+      updateSelectedQuestions();
+    }
+    document.addEventListener('DOMContentLoaded', loadQuestions);
+  </script>
 </body>
 </html>
